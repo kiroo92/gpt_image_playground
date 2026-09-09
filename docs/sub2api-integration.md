@@ -13,7 +13,7 @@ Sub2API 网站地址固定为 `https://www.open1.codes/`，直连模式使用 `h
 - 只展示当前用户的有效 Key；分组必须启用 `allow_image_generation`，状态为 `active`，平台为 `openai` 或 `grok`，与 Sub2API 异步图像接口的条件一致。分组名称无需包含 `image`。
 - 顶部按分组选择 Key，首次默认选中最新的可用 Key；刷新后保留选中的配置，失效时切换至可用项。
 - 自动使用内置供应商 `sb2api-async`（显示为 `sub2api（异步）`），直连地址为来源网站的 `/v1`；启用 Docker 专用代理时使用工作台同源 `/sub2api-api/v1`。关闭流式输出和通用 API 代理。
-- 手动填写 Key 时使用 `gpt-image-2`；自动读取分组时，OpenAI 默认模型为 `gpt-image-2`，Grok 默认模型为 `grok-imagine-image`。图片尺寸、质量和数量仍可在生成栏中调整。
+- 手动填写 Key 时默认使用 `gpt-image-2.5-sunburst`；自动读取分组时，OpenAI 默认模型为 `gpt-image-2.5-sunburst`，Grok 默认模型为 `grok-imagine-image`。模型可在右上角 API Key 面板中选择，图片尺寸、质量和数量仍可在生成栏中调整。
 - 提交接口为 `/v1/images/generations/async` 或 `/v1/images/edits/async`，通过 `/v1/images/tasks/{task_id}` 轮询结果。
 - 没有符合条件的 Key 时，显示「去创建 API Key」和「刷新 Key 列表」。创建时需选择已开启图片生成的分组。
 

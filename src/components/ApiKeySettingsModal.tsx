@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useStore } from '../store'
 import { getActiveApiProfile } from '../lib/apiProfiles'
-import { createManualSub2ApiProfile, SUB2API_ORIGIN } from '../lib/sub2api'
+import { createManualSub2ApiProfile, fetchUpstreamImageModels, SUB2API_ORIGIN } from '../lib/sub2api'
+import { BUILTIN_IMAGE_MODELS, getSupportedImageModels, saveSupportedImageModels } from '../lib/imageModels'
 import { getStorageNamespace } from '../lib/sub2apiSession'
 import { useCloseOnEscape } from '../hooks/useCloseOnEscape'
 import { usePreventBackgroundScroll } from '../hooks/usePreventBackgroundScroll'
@@ -16,6 +17,10 @@ export default function ApiKeySettingsModal() {
   const managed = getStorageNamespace() !== 'gpt-image-playground'
   const [key, setKey] = useState('')
   const [visible, setVisible] = useState(false)
+  const [model, setModel] = useState(profile.model)
+  const [models, setModels] = useState<string[]>(getSupportedImageModels)
+  const [modelMessage, setModelMessage] = useState('')
+  const [syncingModels, setSyncingModels] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const close = () => setShowSettings(false)
 
@@ -26,9 +31,50 @@ export default function ApiKeySettingsModal() {
     const previousFocus = document.activeElement as HTMLElement | null
     setKey(profile.apiKey)
     setVisible(false)
+    setModel(profile.model)
+    setModels(getSupportedImageModels())
+    setModelMessage('')
     inputRef.current?.focus()
     return () => previousFocus?.focus()
   }, [open, profile.apiKey])
+
+  const updateModel = (nextModel: string) => {
+    setModel(nextModel)
+    useStore.getState().setSettings({
+      profiles: settings.profiles.map((item) => item.id === profile.id ? { ...item, model: nextModel } : item),
+      model: nextModel,
+    })
+  }
+
+  const syncLatestModels = () => {
+    const next = saveSupportedImageModels([...BUILTIN_IMAGE_MODELS, ...models])
+    setModels(next)
+    setModelMessage(`已同步 ${next.length} 个内置模型`)
+  }
+
+  const syncUpstreamModels = async () => {
+    if (!profile.apiKey.trim()) {
+      setModelMessage('请先填写 API Key')
+      return
+    }
+    setSyncingModels(true)
+    setModelMessage('正在同步上游模型…')
+    try {
+      const next = saveSupportedImageModels(await fetchUpstreamImageModels(profile.baseUrl, profile.apiKey))
+      setModels(next)
+      if (!next.includes(model)) updateModel(next[0])
+      setModelMessage(`已同步 ${next.length} 个上游图像模型`)
+    } catch (error) {
+      setModelMessage((error as Error).message)
+    } finally {
+      setSyncingModels(false)
+    }
+  }
+
+  const clearModels = () => {
+    setModels(saveSupportedImageModels([]))
+    setModelMessage('模型列表已清空，可重新同步上游模型')
+  }
 
   if (!open) return null
   return createPortal(
@@ -52,6 +98,7 @@ export default function ApiKeySettingsModal() {
           e.preventDefault()
           if (!managed) {
             const next = createManualSub2ApiProfile(key)
+            next.model = model
             useStore.getState().setSettings({
               profiles: [...settings.profiles.filter((item) => item.id !== next.id), next],
               activeProfileId: next.id,
@@ -70,6 +117,22 @@ export default function ApiKeySettingsModal() {
         <div className="flex overflow-hidden rounded-xl border border-gray-300 dark:border-gray-700 focus-within:ring-2 focus-within:ring-blue-500">
           <input ref={inputRef} id="manual-api-key" type={visible ? 'text' : 'password'} autoComplete="off" spellCheck={false} value={key} readOnly={managed} onChange={(e) => setKey(e.target.value)} placeholder="sk-…" className="min-w-0 flex-1 bg-transparent px-3 py-3 font-mono text-sm outline-none" />
           <button type="button" aria-label={visible ? '隐藏 API Key' : '显示 API Key'} onClick={() => setVisible((value) => !value)} className="px-3 text-sm text-gray-500 hover:text-blue-600">{visible ? '隐藏' : '显示'}</button>
+        </div>
+        <div className="mt-5">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <label htmlFor="image-model" className="text-sm font-medium">图像模型</label>
+            <span className="text-xs text-gray-500">默认：gpt-image-2.5-sunburst</span>
+          </div>
+          <select id="image-model" value={model} onChange={(e) => updateModel(e.target.value)} className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-transparent px-3 py-3 font-mono text-sm outline-none">
+            {!models.includes(model) && model && <option value={model}>{model}（当前配置）</option>}
+            {models.map((item) => <option key={item} value={item}>{item}</option>)}
+          </select>
+          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs">
+            <button type="button" onClick={syncLatestModels} className="text-blue-600 hover:underline">同步最新支持模型</button>
+            <button type="button" onClick={() => void syncUpstreamModels()} disabled={syncingModels} className="text-blue-600 hover:underline disabled:opacity-50">同步上游支持模型</button>
+            <button type="button" onClick={clearModels} className="text-gray-500 hover:text-red-600">清除所有模型</button>
+          </div>
+          {modelMessage && <p role="status" className="mt-2 text-xs text-gray-500">{modelMessage}</p>}
         </div>
         <div className="mt-5 flex items-center justify-between gap-3">
           <a href={`${SUB2API_ORIGIN}/keys`} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600">获取 API Key ↗</a>
