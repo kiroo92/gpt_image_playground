@@ -1,6 +1,6 @@
 # Sub2API 自定义菜单接入
 
-默认 Sub2API 网站地址为 `https://www.open1.codes/`，自动读取的图像配置使用 `https://www.open1.codes/v1`。菜单携带的 `src_host` 或显式的 `VITE_SUB2API_URL` 可覆盖默认网站。
+默认 Sub2API 网站地址为 `https://www.open1.codes/`，直连模式使用 `https://www.open1.codes/v1`。菜单携带的 `src_host` 或显式的 `VITE_SUB2API_URL` 可覆盖默认网站；Docker 运行时通过 `SUB2API_URL` 指定。
 
 在 Sub2API 的「系统设置 → 自定义菜单页面」添加菜单，填写工作台的完整 URL（例如 `https://www.open1.codes/image/`），打开方式选择「新标签页打开」，按需设置用户或管理员可见。旧菜单默认继续使用嵌入方式。
 
@@ -10,12 +10,14 @@
 
 - 只展示当前用户的有效 Key；分组必须启用 `allow_image_generation`，状态为 `active`，平台为 `openai` 或 `grok`，与 Sub2API 异步图像接口的条件一致。分组名称无需包含 `image`。
 - 顶部按分组选择 Key，首次默认选中最新的可用 Key；刷新后保留选中的配置，失效时切换至可用项。
-- 自动使用内置供应商 `sb2api-async`（显示为 `sub2api（异步）`），地址为来源网站的 `/v1`，关闭流式输出和 API 代理。
+- 自动使用内置供应商 `sb2api-async`（显示为 `sub2api（异步）`），直连地址为来源网站的 `/v1`；启用 Docker 专用代理时使用工作台同源 `/sub2api-api/v1`。关闭流式输出和通用 API 代理。
 - OpenAI 默认模型为 `gpt-image-2`，Grok 默认模型为 `grok-imagine-image`；模型等参数可在工作台设置中调整。
 - 提交接口为 `/v1/images/generations/async` 或 `/v1/images/edits/async`，通过 `/v1/images/tasks/{task_id}` 轮询结果。
 - 没有符合条件的 Key 时，显示「去创建 API Key」和「刷新 Key 列表」。创建时需选择已开启图片生成的分组。
 
 ## 部署
+
+推荐使用已配好参数的 [Docker Compose 部署](docker-compose.md)：在仓库根目录执行 `docker compose up -d --build`。默认通过容器转发到 `https://www.open1.codes/`，涵盖认证、Key 列表和异步图像接口，浏览器无需跨域请求。Compose 默认绑定宿主机 `127.0.0.1:8081`。
 
 两个项目仍各自构建和部署。Sub2API 本次修改包含后端菜单字段，发布时需同时更新 Sub2API 前端和后端。工作台的 `dist/` 可由独立静态站点提供，也可在同站点 `/image/` 下提供；访问子目录时保留末尾的 `/`。仅设置菜单 URL 不会自动部署工作台文件。
 
@@ -31,7 +33,7 @@ npm run build
 npm test
 ```
 
-跨域部署需在 Sub2API 的 CORS 配置中允许工作台域名及 `Authorization` 请求头。同源 `/image/` 部署无需额外 CORS 配置。Sub2API 服务端还需启用异步图像任务及对象存储；Key 分组权限和异步服务是否启用是两项独立条件。
+浏览器直连 API 的跨域部署需在 Sub2API 的 CORS 配置中允许工作台域名及 `Authorization` 请求头。同源部署或开启 Compose 专用代理后无需额外 CORS 配置。Sub2API 服务端还需启用异步图像任务及对象存储；Key 分组权限和异步服务是否启用是两项独立条件。
 
 例如，工作台页面来源为 `https://gpt-image-playground.cooksleep.dev`、API 为 `https://www.open1.codes` 时，在 Sub2API 实际加载的 `config.yaml` 中合并以下配置并重启服务：
 

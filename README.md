@@ -295,12 +295,22 @@ npm run deploy:cf
 <details>
 <summary><strong>🐳 方式四：Docker 部署</strong></summary>
 
-支持通过官方发布的 Docker 镜像在服务器或本地容器环境中快速运行。
+本仓库已提供配置好的 [compose.yaml](compose.yaml)，会从当前源码构建包含 Sub2API 接入功能的镜像，默认连接 `https://www.open1.codes/`，并启用认证和异步生图的同源代理。
+
+```bash
+docker compose up -d --build
+```
+
+默认监听宿主机 `127.0.0.1:8081`，将工作台域名反向代理至该地址即可。需要调整端口或网站地址时，将 [.env.example](.env.example) 复制为 `.env` 后修改。完整配置见 [Compose 部署说明](docs/docker-compose.md)。
+
+以下官方镜像示例适用于上游通用版本；本仓库的 Sub2API 自动认证功能使用上面的源码构建方式。
 
 **环境变量**
 
 | 变量 | 说明 |
 |------|------|
+| `SUB2API_URL` | Sub2API 网站地址，默认 `https://www.open1.codes/`，容器启动时注入前端；填写完整 http(s) Origin，可带末尾 `/` |
+| `SUB2API_PROXY_ENABLED=true` | 通过容器转发认证、Key 列表、图像提交和结果轮询，解决浏览器跨域问题；Compose 默认开启 |
 | `DEFAULT_API_URL` | 预置配置，支持上述三种填写方式。若值指向 `.json` 文件或容器内路径，容器启动时自动读取并内嵌到页面。宿主机文件需通过 volume 挂载。详见 [预置配置说明](#preset-config) |
 | `ENABLE_API_PROXY=true` | 开启 Nginx 同源代理，请求发往 `/api-proxy/{路径}` 再转发到 `API_PROXY_URL` |
 | `API_PROXY_URL` | 代理转发的完整 API 基础地址（不自动补 `/v1`） |
@@ -350,21 +360,14 @@ docker run -d -p 8080:80 \
 
 使用 host 网络加 `--network host`，修改端口用 `-e PORT=28080`。
 
-**Docker Compose 示例**
+**更新本仓库的 Compose 部署：**
 
-```yaml
-services:
-  gpt-image-playground:
-    image: ghcr.io/cooksleep/gpt_image_playground:latest
-    environment:
-      - DEFAULT_API_URL=https://api.openai.com/v1
-    ports:
-      - "8080:80"
-    restart: unless-stopped
+```bash
+git pull --ff-only
+docker compose up -d --build
 ```
-**更新说明：**
 
-使用 `latest` 标签时，重新拉取镜像并重启即可更新（如 `docker compose pull && docker compose up -d`）。若需固定版本可使用官方提供的版本号标签（如 `0.2.x`）。
+仅调整 `.env` 中的运行参数时，执行 `docker compose up -d` 即可重建容器并应用新参数。
 
 </details>
 

@@ -3,6 +3,7 @@ import { lazy, StrictMode, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import Sub2ApiGate from './components/Sub2ApiGate'
 import { readSub2ApiSession, type Sub2ApiSession } from './lib/sub2apiSession'
+import { readRuntimeEnv } from './lib/runtimeEnv'
 import 'streamdown/styles.css'
 import 'katex/dist/katex.min.css'
 import './index.css'
@@ -20,7 +21,7 @@ if (cleanUrl.href !== incomingUrl.href) window.history.replaceState(null, '', cl
 let session: Sub2ApiSession | null = null
 let sessionError = ''
 try {
-  const sourceUrl = import.meta.env.VITE_SUB2API_URL || (incomingUrl.searchParams.has('src_host') ? '' : 'https://www.open1.codes/')
+  const sourceUrl = readRuntimeEnv(import.meta.env.VITE_SUB2API_URL) || (incomingUrl.searchParams.has('src_host') ? '' : 'https://www.open1.codes/')
   session = readSub2ApiSession(incomingUrl, sessionStorage, sourceUrl)
 } catch {
   sessionError = 'Sub2API 登录配置读取失败，请从网站菜单重新打开'

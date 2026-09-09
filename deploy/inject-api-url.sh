@@ -80,8 +80,15 @@ case "$DEFAULT_API_URL_TRIMMED" in
         ;;
 esac
 DEFAULT_API_URL_ESCAPED=$(escape_sed_replacement "$(escape_js_string "$DEFAULT_API_URL")")
+SUB2API_URL_ESCAPED=$(escape_sed_replacement "$(escape_js_string "$SUB2API_URL")")
+SUB2API_PROXY_AVAILABLE=false
+if [ "$SUB2API_PROXY_ENABLED" = "true" ]; then
+    SUB2API_PROXY_AVAILABLE=true
+fi
 
 # 查找所有 js 文件并将占位符替换为运行时配置
+find /usr/share/nginx/html/assets -type f -name "*.js" -exec sed -i "s|__VITE_SUB2API_URL_PLACEHOLDER__|$SUB2API_URL_ESCAPED|g" {} +
+find /usr/share/nginx/html/assets -type f -name "*.js" -exec sed -i "s|__VITE_SUB2API_PROXY_ENABLED_PLACEHOLDER__|$SUB2API_PROXY_AVAILABLE|g" {} +
 find /usr/share/nginx/html/assets -type f -name "*.js" -exec sed -i "s|__VITE_DEFAULT_API_URL_PLACEHOLDER__|$DEFAULT_API_URL_ESCAPED|g" {} +
 find /usr/share/nginx/html/assets -type f -name "*.js" -exec sed -i "s|__VITE_API_PROXY_AVAILABLE_PLACEHOLDER__|$API_PROXY_AVAILABLE|g" {} +
 find /usr/share/nginx/html/assets -type f -name "*.js" -exec sed -i "s|__VITE_API_PROXY_LOCKED_PLACEHOLDER__|$API_PROXY_LOCKED|g" {} +
@@ -92,6 +99,10 @@ find /usr/share/nginx/html/assets -type f -name "*.js" -exec sed -i "s|__VITE_LO
 find /usr/share/nginx/html/assets -type f -name "*.js" -exec sed -i "s|__VITE_PREVENT_PRESET_CONFIG_DELETION_PLACEHOLDER__|$PRESET_CONFIG_DELETION_PREVENTED|g" {} +
 
 # 检查是否启用了 API 代理
+if [ "$SUB2API_PROXY_ENABLED" != "true" ]; then
+    sed -i '/# BEGIN SUB2API PROXY/,/# END SUB2API PROXY/d' /etc/nginx/conf.d/default.conf
+fi
+
 if [ "$ENABLE_API_PROXY" != "true" ]; then
     # 删除代理配置块
     sed -i '/# BEGIN API PROXY/,/# END API PROXY/d' /etc/nginx/conf.d/default.conf

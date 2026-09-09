@@ -1,5 +1,6 @@
 import type { ApiProfile } from '../types'
 import type { Sub2ApiSession } from './sub2apiSession'
+import { readRuntimeEnv } from './runtimeEnv'
 
 export interface Sub2ApiKey {
   id: number
@@ -21,10 +22,16 @@ export interface Sub2ApiKey {
 
 export class Sub2ApiAuthError extends Error {}
 
+function getSub2ApiRequestBase(origin: string) {
+  return readRuntimeEnv(import.meta.env.VITE_SUB2API_PROXY_ENABLED) === 'true'
+    ? `${window.location.origin}/sub2api-api`
+    : origin
+}
+
 export async function loadSub2ApiKeys(session: Sub2ApiSession, signal?: AbortSignal) {
   if (!session.token) throw new Sub2ApiAuthError('请从 Sub2API 菜单登录后打开图像工作台')
   const request = async (path: string) => {
-    const response = await fetch(`${session.origin}/api/v1${path}`, {
+    const response = await fetch(`${getSub2ApiRequestBase(session.origin)}/api/v1${path}`, {
       headers: { Authorization: `Bearer ${session.token}` },
       credentials: 'omit',
       cache: 'no-store',
@@ -76,7 +83,7 @@ export function createSub2ApiProfiles(keys: Sub2ApiKey[], origin: string, previo
       id,
       name: `${key.group!.name} / ${key.name}`,
       provider: 'sb2api-async',
-      baseUrl: `${origin}/v1`,
+      baseUrl: `${getSub2ApiRequestBase(origin)}/v1`,
       apiKey: key.key,
       apiMode: 'images',
       model: saved?.model || (key.group!.platform === 'grok' ? 'grok-imagine-image' : 'gpt-image-2'),

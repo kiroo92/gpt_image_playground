@@ -1,5 +1,21 @@
 #!/bin/sh
 
+# 在 Nginx 模板展开前准备固定的 Sub2API 上游地址。
+SUB2API_URL=${SUB2API_URL:-https://www.open1.codes/}
+SUB2API_UPSTREAM_URL=${SUB2API_URL%/}
+case "$SUB2API_UPSTREAM_URL" in
+    http://*|https://*) ;;
+    *) echo "SUB2API_URL must be an http(s) website origin" >&2; exit 1 ;;
+esac
+SUB2API_UPSTREAM_AUTHORITY=${SUB2API_UPSTREAM_URL#*://}
+case "$SUB2API_UPSTREAM_AUTHORITY" in
+    ''|*[!a-zA-Z0-9.:-]*)
+        echo "SUB2API_URL must contain only a hostname and optional port, without a path or credentials" >&2
+        exit 1
+        ;;
+esac
+export SUB2API_URL SUB2API_UPSTREAM_URL
+
 # 兼容旧版本 Docker 环境变量：API_URL 同时作为两个新变量的兜底值。
 DOCKER_LEGACY_API_URL_USED=false
 if [ -n "$API_URL" ]; then
