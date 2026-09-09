@@ -22,10 +22,29 @@ export interface Sub2ApiKey {
 
 export class Sub2ApiAuthError extends Error {}
 
-function getSub2ApiRequestBase(origin: string) {
+export const SUB2API_ORIGIN = 'https://www.open1.codes'
+
+export function getSub2ApiRequestBase(origin: string) {
   return readRuntimeEnv(import.meta.env.VITE_SUB2API_PROXY_ENABLED) === 'true'
     ? `${window.location.origin}/sub2api-api`
     : origin
+}
+
+export function createManualSub2ApiProfile(apiKey: string): ApiProfile {
+  return {
+    id: 'sub2api-manual',
+    name: 'Sub2API',
+    provider: 'sb2api-async',
+    baseUrl: `${getSub2ApiRequestBase(SUB2API_ORIGIN)}/v1`,
+    apiKey: apiKey.trim(),
+    apiMode: 'images',
+    model: 'gpt-image-2',
+    timeout: 600,
+    codexCli: false,
+    apiProxy: false,
+    streamImages: false,
+    transparentBackgroundMethod: 'api',
+  }
 }
 
 export async function loadSub2ApiKeys(session: Sub2ApiSession, signal?: AbortSignal) {

@@ -90,14 +90,19 @@ describe('Sub2API menu session', () => {
   it('does not reuse another website token or accept credential-bearing URLs', () => {
     const storage = makeStorage()
     readSub2ApiSession(new URL('https://image.example/?token=old&src_host=https://old.example'), storage)
-    expect(readSub2ApiSession(new URL('https://image.example/?src_host=https://new.example'), storage)?.token).toBe('')
-    expect(() => readSub2ApiSession(new URL('https://image.example/?src_host=javascript:alert(1)'), storage)).toThrow()
-    expect(() => readSub2ApiSession(new URL('https://image.example/?src_host=https://user:pass@sub.example'), storage)).toThrow()
+    expect(readSub2ApiSession(new URL('https://image.example/?src_host=https://new.example'), storage)).toBeNull()
+    expect(() => readSub2ApiSession(new URL('https://image.example/?token=fixture-token&src_host=javascript:alert(1)'), storage)).toThrow()
+    expect(() => readSub2ApiSession(new URL('https://image.example/?token=fixture-token&src_host=https://user:pass@sub.example'), storage)).toThrow()
   })
 
-  it('keeps /image and configured deployments gated without query parameters', () => {
-    expect(readSub2ApiSession(new URL('https://sub.example/image/'), makeStorage())).toMatchObject({ origin: 'https://sub.example', token: '' })
-    expect(readSub2ApiSession(new URL('https://image.example/'), makeStorage(), 'https://sub.example')).toMatchObject({ origin: 'https://sub.example', token: '' })
+  it('opens /image and configured deployments normally without authentication', () => {
+    expect(readSub2ApiSession(new URL('https://sub.example/image/'), makeStorage())).toBeNull()
+    expect(readSub2ApiSession(new URL('https://image.example/'), makeStorage(), 'https://sub.example')).toBeNull()
     expect(readSub2ApiSession(new URL('https://image.example/'), makeStorage())).toBeNull()
+    expect(readSub2ApiSession(new URL('https://image.example/?token=&src_host=https://sub.example'), makeStorage())).toBeNull()
+    expect(readSub2ApiSession(new URL('https://image.example/?src_host=https://sub.example&user_id=42'), makeStorage())).toBeNull()
+    const storage = makeStorage()
+    storage.setItem('sub2api-session:/', JSON.stringify({ ...session, token: '' }))
+    expect(readSub2ApiSession(new URL('https://image.example/'), storage)).toBeNull()
   })
 })

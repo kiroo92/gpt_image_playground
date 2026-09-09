@@ -162,7 +162,7 @@
 
 ## 🚀 部署与使用
 
-**Sub2API 网站用户**：支持从自定义菜单新标签页打开、复用网站认证、按图像分组自动加载 Key 并使用异步生图。参见 [Sub2API 菜单接入说明](docs/sub2api-integration.md)。
+**本分支使用方式**：直接访问即可进入工作台，右上角只需填写 API Key；地址固定为 `https://www.open1.codes/`，使用 Sub2API 异步生图。携带网站认证时按图像分组自动加载 Key，参见 [Sub2API 菜单接入说明](docs/sub2api-integration.md)。下方多供应商、Agent 和高级配置介绍为上游通用版本说明，本分支使用简化的生图配置入口。
 
 支持多种部署与开发方式。
 
@@ -301,7 +301,7 @@ npm run deploy:cf
 docker compose up -d --build
 ```
 
-默认监听宿主机 `127.0.0.1:8081`，将工作台域名反向代理至该地址即可。需要调整端口或网站地址时，将 [.env.example](.env.example) 复制为 `.env` 后修改。完整配置见 [Compose 部署说明](docs/docker-compose.md)。
+默认监听宿主机 `127.0.0.1:8081`，将工作台域名反向代理至该地址即可。需要调整端口或代理开关时，将 [.env.example](.env.example) 复制为 `.env` 后修改。完整配置见 [Compose 部署说明](docs/docker-compose.md)。
 
 以下官方镜像示例适用于上游通用版本；本仓库的 Sub2API 自动认证功能使用上面的源码构建方式。
 
@@ -309,7 +309,7 @@ docker compose up -d --build
 
 | 变量 | 说明 |
 |------|------|
-| `SUB2API_URL` | Sub2API 网站地址，默认 `https://www.open1.codes/`，容器启动时注入前端；填写完整 http(s) Origin，可带末尾 `/` |
+| `SUB2API_URL` | 容器专用代理上游；本分支 Compose 固定为 `https://www.open1.codes/`，与网页内置地址一致 |
 | `SUB2API_PROXY_ENABLED=true` | 通过容器转发认证、Key 列表、图像提交和结果轮询，解决浏览器跨域问题；Compose 默认开启 |
 | `DEFAULT_API_URL` | 预置配置，支持上述三种填写方式。若值指向 `.json` 文件或容器内路径，容器启动时自动读取并内嵌到页面。宿主机文件需通过 volume 挂载。详见 [预置配置说明](#preset-config) |
 | `ENABLE_API_PROXY=true` | 开启 Nginx 同源代理，请求发往 `/api-proxy/{路径}` 再转发到 `API_PROXY_URL` |

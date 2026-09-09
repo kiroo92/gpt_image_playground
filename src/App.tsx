@@ -1,11 +1,8 @@
 import { useEffect, type ReactNode } from 'react'
-import { initStore, restoreExplicitPresetConfig, useStore } from './store'
-import { buildSettingsFromUrlParams, clearUrlSettingParams, getExplicitUrlSettingsIds, hasUrlSettingParams } from './lib/urlSettings'
-import { createDefaultOpenAIProfile, hasDefaultPresetConfig, isAgentTextApiProfile, normalizeSettings } from './lib/apiProfiles'
-import { getCustomProviderConfigUrl, hasEmbeddedDefaultConfig, loadCustomProviderSettingsFromUrl, loadEmbeddedDefaultConfig } from './lib/customProviderConfigUrl'
-import { getDefaultPresetProfileId, getPresetProfileIds, isPresetConfigOnlyEnabled, setPresetConfig } from './lib/presetConfig'
-import { useDockerApiUrlMigrationNotice } from './hooks/useDockerApiUrlMigrationNotice'
-import type { AppSettings } from './types'
+import { initStore, useStore } from './store'
+import { getActiveApiProfile } from './lib/apiProfiles'
+import { setPresetConfig } from './lib/presetConfig'
+import { createManualSub2ApiProfile } from './lib/sub2api'
 import Header from './components/Header'
 import SearchBar from './components/SearchBar'
 import TaskGrid from './components/TaskGrid'
@@ -13,7 +10,7 @@ import AgentWorkspace from './components/AgentWorkspace'
 import InputBar from './components/InputBar'
 import DetailModal from './components/DetailModal'
 import Lightbox from './components/Lightbox'
-import SettingsModal from './components/SettingsModal'
+import ApiKeySettingsModal from './components/ApiKeySettingsModal'
 import ConfirmDialog from './components/ConfirmDialog'
 import Toast from './components/Toast'
 import MaskEditorModal from './components/MaskEditorModal'
@@ -22,106 +19,38 @@ import SupportPromptModal from './components/SupportPromptModal'
 import { FavoriteCollectionPickerModal, FavoriteCollectionsView, ManageCollectionsModal } from './components/FavoriteCollections'
 import { useGlobalClickSuppression } from './lib/clickSuppression'
 
-let defaultConfigImportStarted = false
+let storeInitializationStarted = false
 
 export default function App({ initialized = false, toolbar }: { initialized?: boolean; toolbar?: ReactNode }) {
   const appMode = useStore((s) => s.appMode)
   const filterFavorite = useStore((s) => s.filterFavorite)
   const activeFavoriteCollectionId = useStore((s) => s.activeFavoriteCollectionId)
-  useDockerApiUrlMigrationNotice()
   useGlobalClickSuppression()
 
   useEffect(() => {
     if (initialized) return
-    if (defaultConfigImportStarted) return
-    defaultConfigImportStarted = true
+    if (storeInitializationStarted) return
+    storeInitializationStarted = true
 
-    const searchParams = new URLSearchParams(window.location.search)
-    const customProviderConfigUrl = getCustomProviderConfigUrl()
-    const embeddedDefaultConfig = hasEmbeddedDefaultConfig()
-    const loadDefaultConfig = () => embeddedDefaultConfig
-      ? Promise.resolve().then(() => loadEmbeddedDefaultConfig())
-      : loadCustomProviderSettingsFromUrl(customProviderConfigUrl)
-
-    const applyUrlSettings = async (baseSettings: Partial<AppSettings>) => {
-      const ids = getExplicitUrlSettingsIds(searchParams)
-      const restored = await restoreExplicitPresetConfig(ids)
-      const restoredSettings = useStore.getState().settings
-      const sourceSettings = restored
-        ? { ...restoredSettings, ...baseSettings, customProviders: restoredSettings.customProviders, profiles: restoredSettings.profiles }
-        : baseSettings
-      const nextSettings = buildSettingsFromUrlParams(sourceSettings, searchParams)
-      return Object.keys(nextSettings).length ? nextSettings : sourceSettings
-    }
-
-    const clearAppliedUrlSettings = () => {
-      if (!hasUrlSettingParams(searchParams)) return
-
-      clearUrlSettingParams(searchParams)
-
-      const nextSearch = searchParams.toString()
-      const nextUrl = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ''}${window.location.hash}`
-      window.history.replaceState(null, '', nextUrl)
-    }
-
-    void initStore()
-      .then(async () => {
-        const importedSettings = embeddedDefaultConfig || customProviderConfigUrl
-          ? await loadDefaultConfig()
-          : hasDefaultPresetConfig()
-            ? {
-                customProviders: [],
-                profiles: [{ ...createDefaultOpenAIProfile(), isDefault: true }],
-              }
-            : null
-        setPresetConfig(importedSettings)
-
-        const state = useStore.getState()
-        if (importedSettings) {
-          await state.setPresetImportedSettings(importedSettings)
-        } else if (state.previousPresetConfig) {
-          await state.setPresetImportedSettings({ customProviders: [], profiles: [] })
-        }
-
-        const syncedState = useStore.getState()
-        if (!importedSettings) {
-          useStore.setState({ dismissedPresetProfileIds: [], dismissedPresetProviderIds: [] })
-          if (syncedState.settings.profiles.some((profile) => profile.isDefault)) {
-            syncedState.setSettings({
-              profiles: syncedState.settings.profiles.map((profile) => profile.isDefault ? { ...profile, isDefault: undefined } : profile),
-            })
-          }
-        }
-
-        const current = useStore.getState()
-        const presetIds = getPresetProfileIds()
-        const defaultPresetId = getDefaultPresetProfileId()
-        const settings = isPresetConfigOnlyEnabled()
-          ? normalizeSettings({
-              ...current.settings,
-              activeProfileId: presetIds.has(current.settings.activeProfileId)
-                ? current.settings.activeProfileId
-                : defaultPresetId ?? [...presetIds][0],
-              agentTextProfileId: current.settings.agentTextProfileId && presetIds.has(current.settings.agentTextProfileId)
-                ? current.settings.agentTextProfileId
-                : current.settings.profiles.find((profile) => presetIds.has(profile.id) && isAgentTextApiProfile(profile))?.id ?? null,
-              agentImageProfileId: current.settings.agentImageProfileId && presetIds.has(current.settings.agentImageProfileId)
-                ? current.settings.agentImageProfileId
-                : defaultPresetId ?? [...presetIds][0],
-            })
-          : current.settings
-        current.setSettings(await applyUrlSettings(settings))
-        clearAppliedUrlSettings()
-      })
-      .catch((error) => {
-        console.warn('Failed to import preset config:', error)
-        setPresetConfig(null)
-        const state = useStore.getState()
-        void applyUrlSettings(state.settings).then((settings) => {
-          useStore.getState().setSettings(settings)
-          clearAppliedUrlSettings()
-        })
-      })
+    setPresetConfig(null)
+    const state = useStore.getState()
+    const profile = createManualSub2ApiProfile('')
+    const previous = state.settings.profiles.find((item) => item.id === profile.id) ?? getActiveApiProfile(state.settings)
+    // 仅复用同一网站的 Key，旧的其他供应商配置留在本地。
+    if (previous.id === profile.id || previous.baseUrl.replace(/\/+$/, '') === profile.baseUrl) profile.apiKey = previous.apiKey
+    state.setSettings({
+      profiles: [...state.settings.profiles.filter((item) => item.id !== profile.id), profile],
+      activeProfileId: profile.id,
+      agentApiConfigMode: 'off',
+      agentTextProfileId: null,
+      agentImageProfileId: null,
+      reuseTaskApiProfileTemporarily: false,
+    })
+    useStore.setState({ appMode: 'gallery', previousPresetConfig: null })
+    void initStore().catch((error) => {
+      console.warn('Failed to load local gallery:', error)
+      useStore.getState().showToast('本地画廊加载失败，请检查浏览器存储权限')
+    })
   }, [initialized])
 
   useEffect(() => {
@@ -137,7 +66,7 @@ export default function App({ initialized = false, toolbar }: { initialized?: bo
 
   return (
     <>
-      <Header />
+      <Header imageOnly />
       {toolbar}
       {appMode === 'agent' ? (
         <AgentWorkspace />
@@ -152,7 +81,7 @@ export default function App({ initialized = false, toolbar }: { initialized?: bo
       <InputBar />
       <DetailModal />
       <Lightbox />
-      <SettingsModal />
+      <ApiKeySettingsModal />
       <ConfirmDialog />
       <SupportPromptModal />
       <FavoriteCollectionPickerModal />

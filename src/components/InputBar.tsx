@@ -437,8 +437,8 @@ export default function InputBar() {
     ? '停止生成'
     : hasSubmitApiConfig
     ? maskDraft ? '遮罩编辑' : '生成图像'
-    : '请先配置 API'
-  const submitTooltipText = activeAgentIsRunning ? '停止生成' : '尚未完成 API 配置，请在右上角设置中进行'
+    : '请先填写 API Key'
+  const submitTooltipText = activeAgentIsRunning ? '停止生成' : '请点击右上角 API Key 填写密钥'
   const promptPlaceholder = '描述你想生成的图片，可输入 @ 来指定参考图...'
   const submitCurrentMode = useCallback(() => {
     if (appMode === 'agent') {

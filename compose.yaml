@@ -12,18 +12,11 @@ services:
     environment:
       HOST: "0.0.0.0"
       PORT: "80"
-      SUB2API_URL: "${SUB2API_URL:-https://www.open1.codes/}"
+      SUB2API_URL: "https://www.open1.codes/"
       SUB2API_PROXY_ENABLED: "${SUB2API_PROXY_ENABLED:-true}"
-      # Key 由用户登录后动态获取，此处只配置网站地址。
-      DEFAULT_API_URL: ""
-      ENABLE_API_PROXY: "false"
-      LOCK_API_PROXY: "false"
-      SHOW_PRESET_CONFIG_ONLY: "false"
-      LOCK_PRESET_CONFIG_PARAMS: "false"
-      PREVENT_PRESET_CONFIG_DELETION: "false"
+      # Key 在网页中填写，携带网站认证时自动获取。
     logging:
       driver: json-file
       options:
         max-size: "10m"
         max-file: "3"
-

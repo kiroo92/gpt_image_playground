@@ -19,7 +19,7 @@ function isInstalledPwa() {
   return window.matchMedia('(display-mode: standalone)').matches || nav.standalone === true
 }
 
-export default function Header() {
+export default function Header({ imageOnly = false }: { imageOnly?: boolean }) {
   const appMode = useStore((s) => s.appMode)
   const setAppMode = useStore((s) => s.setAppMode)
   const setShowSettings = useStore((s) => s.setShowSettings)
@@ -235,7 +235,7 @@ export default function Header() {
               </div>
             </div>
           )}
-          <div className="hidden sm:flex items-center gap-1 rounded-xl border border-gray-200 dark:border-white/[0.08] bg-gray-100/70 dark:bg-white/[0.04] p-1 mr-4">
+          {!imageOnly && <div className="hidden sm:flex items-center gap-1 rounded-xl border border-gray-200 dark:border-white/[0.08] bg-gray-100/70 dark:bg-white/[0.04] p-1 mr-4">
             <button
               type="button"
               onClick={() => setAppMode('gallery')}
@@ -250,7 +250,7 @@ export default function Header() {
             >
               Agent
             </button>
-          </div>
+          </div>}
           <div className="flex items-center gap-1 shrink-0">
             {!isPwaInstalled && (
               <div
@@ -297,17 +297,17 @@ export default function Header() {
               <button
                 onClick={() => setShowSettings(true)}
                 className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"
-                aria-label="设置"
+                aria-label={imageOnly ? 'API Key' : '设置'}
               >
-                <SettingsIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                {imageOnly ? <span className="text-sm font-medium text-gray-600 dark:text-gray-300">API Key</span> : <SettingsIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />}
               </button>
               <ViewportTooltip visible={settingsTooltip.visible} className="whitespace-nowrap">
-                设置
+                {imageOnly ? 'API Key' : '设置'}
               </ViewportTooltip>
             </div>
           </div>
         </div>
-        <div className={`safe-area-x sm:hidden overflow-hidden transition-all duration-300 ease-in-out ${appMode === 'gallery' && scrollDirection === 'down' ? 'max-h-0 opacity-0 pb-0' : 'max-h-20 opacity-100 pb-2'}`}>
+        {!imageOnly && <div className={`safe-area-x sm:hidden overflow-hidden transition-all duration-300 ease-in-out ${appMode === 'gallery' && scrollDirection === 'down' ? 'max-h-0 opacity-0 pb-0' : 'max-h-20 opacity-100 pb-2'}`}>
           <div className="grid grid-cols-2 gap-1 rounded-xl border border-gray-200 dark:border-white/[0.08] bg-gray-100/70 dark:bg-white/[0.04] p-1 mx-2">
             <button
               type="button"
@@ -324,7 +324,7 @@ export default function Header() {
               Agent
             </button>
           </div>
-        </div>
+        </div>}
       </header>
       
       {/* Hint for sliding down */}
@@ -336,11 +336,11 @@ export default function Header() {
 
       <div className={`safe-area-top invisible pointer-events-none transition-all duration-300 ease-in-out ${appMode === 'agent' && !agentMobileHeaderVisible ? 'max-h-0 sm:max-h-[500px] opacity-0 sm:opacity-100 overflow-hidden sm:overflow-visible' : 'max-h-[500px] opacity-100'}`} aria-hidden="true">
         <div className="safe-header-inner" />
-        <div className={`safe-area-x sm:hidden overflow-hidden transition-all duration-300 ease-in-out ${appMode === 'gallery' && scrollDirection === 'down' ? 'max-h-0 pb-0' : 'max-h-20 pb-2'}`}>
+        {!imageOnly && <div className={`safe-area-x sm:hidden overflow-hidden transition-all duration-300 ease-in-out ${appMode === 'gallery' && scrollDirection === 'down' ? 'max-h-0 pb-0' : 'max-h-20 pb-2'}`}>
           <div className="p-1">
             <div className="py-1.5 text-sm">占位</div>
           </div>
-        </div>
+        </div>}
       </div>
       {showHelp && <HelpModal appMode={appMode} isFavoriteCollectionOverview={appMode === 'gallery' && filterFavorite && !activeFavoriteCollectionId} onClose={() => setShowHelp(false)} />}
     </>

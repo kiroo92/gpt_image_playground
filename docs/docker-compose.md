@@ -2,6 +2,8 @@
 
 默认参数已配置为你的 Sub2API 网站 `https://www.open1.codes/`。认证、图像分组 Key 列表、异步生图和任务轮询都经工作台容器的 Nginx 转发，浏览器只访问工作台自身的域名，无需在 Sub2API 为这个工作台额外添加 CORS 来源。
 
+直接访问工作台时正常进入，点击右上角「API Key」填写即可；携带网站认证信息时才自动读取并选择图像分组 Key。网站地址固定为 `https://www.open1.codes/`，供应商固定为 Sub2API 异步模式。普通访问的图像请求也会使用容器同源代理。
+
 ## 启动
 
 在服务器执行：
@@ -19,7 +21,6 @@ docker compose up -d --build
 默认值可直接使用。需要修改时，复制 `.env.example` 为 `.env`：
 
 ```dotenv
-SUB2API_URL=https://www.open1.codes/
 SUB2API_PROXY_ENABLED=true
 BIND_ADDRESS=127.0.0.1
 WEB_PORT=8081
@@ -27,12 +28,11 @@ WEB_PORT=8081
 
 | 参数 | 默认值 | 用途 |
 | --- | --- | --- |
-| `SUB2API_URL` | `https://www.open1.codes/` | 固定的网站来源，同时用于登录入口、Key 管理链接及容器上游。填写 Origin，可带末尾 `/`，不带 API 路径、用户名或密码 |
 | `SUB2API_PROXY_ENABLED` | `true` | 启用认证与图像接口的同源转发；关闭后浏览器直连 Sub2API，需要配置 CORS |
 | `BIND_ADDRESS` | `127.0.0.1` | 宿主机监听地址；跨机器反代或直接通过服务器 IP 访问时设置 `0.0.0.0` |
 | `WEB_PORT` | `8081` | 宿主机端口，避开 Sub2API 常用的 `8080` |
 
-运行参数在容器启动时注入，修改 `.env` 后执行 `docker compose up -d` 即可应用，无需为参数变更重新编译。API Key 在登录后自动获取，不需要填写到 `.env`。图像及历史记录保存在用户浏览器中，容器无需数据库或数据卷；容器日志自动轮转。
+运行参数在容器启动时注入，修改 `.env` 后执行 `docker compose up -d` 即可应用，无需为参数变更重新编译。API Key 在网页中手动填写，携带网站认证时自动获取，无需放入 `.env`。图像及历史记录保存在用户浏览器中，容器无需数据库或数据卷；容器日志自动轮转。
 
 ## 域名反向代理
 
@@ -94,4 +94,3 @@ docker compose down
 ```
 
 停止或重建容器不会删除浏览器里的历史图像。保持工作台域名不变，即可继续访问原有记录。
-

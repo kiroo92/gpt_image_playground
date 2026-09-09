@@ -3,7 +3,7 @@ import { lazy, StrictMode, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import Sub2ApiGate from './components/Sub2ApiGate'
 import { readSub2ApiSession, type Sub2ApiSession } from './lib/sub2apiSession'
-import { readRuntimeEnv } from './lib/runtimeEnv'
+import { SUB2API_ORIGIN } from './lib/sub2api'
 import 'streamdown/styles.css'
 import 'katex/dist/katex.min.css'
 import './index.css'
@@ -21,10 +21,12 @@ if (cleanUrl.href !== incomingUrl.href) window.history.replaceState(null, '', cl
 let session: Sub2ApiSession | null = null
 let sessionError = ''
 try {
-  const sourceUrl = readRuntimeEnv(import.meta.env.VITE_SUB2API_URL) || (incomingUrl.searchParams.has('src_host') ? '' : 'https://www.open1.codes/')
-  session = readSub2ApiSession(incomingUrl, sessionStorage, sourceUrl)
+  session = readSub2ApiSession(incomingUrl, sessionStorage, SUB2API_ORIGIN)
 } catch {
-  sessionError = 'Sub2API 登录配置读取失败，请从网站菜单重新打开'
+  // 普通访问即使浏览器限制会话存储，也继续打开工作台。
+  if (incomingUrl.searchParams.get('token')?.trim()) {
+    sessionError = 'Sub2API 登录配置读取失败，请从网站菜单重新打开'
+  }
 }
 const App = lazy(() => import('./App'))
 
