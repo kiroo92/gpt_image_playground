@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { initStore, restoreExplicitPresetConfig, useStore } from './store'
 import { buildSettingsFromUrlParams, clearUrlSettingParams, getExplicitUrlSettingsIds, hasUrlSettingParams } from './lib/urlSettings'
 import { createDefaultOpenAIProfile, hasDefaultPresetConfig, isAgentTextApiProfile, normalizeSettings } from './lib/apiProfiles'
@@ -24,7 +24,7 @@ import { useGlobalClickSuppression } from './lib/clickSuppression'
 
 let defaultConfigImportStarted = false
 
-export default function App() {
+export default function App({ initialized = false, toolbar }: { initialized?: boolean; toolbar?: ReactNode }) {
   const appMode = useStore((s) => s.appMode)
   const filterFavorite = useStore((s) => s.filterFavorite)
   const activeFavoriteCollectionId = useStore((s) => s.activeFavoriteCollectionId)
@@ -32,6 +32,7 @@ export default function App() {
   useGlobalClickSuppression()
 
   useEffect(() => {
+    if (initialized) return
     if (defaultConfigImportStarted) return
     defaultConfigImportStarted = true
 
@@ -121,7 +122,7 @@ export default function App() {
           clearAppliedUrlSettings()
         })
       })
-  }, [])
+  }, [initialized])
 
   useEffect(() => {
     const preventPageImageDrag = (e: DragEvent) => {
@@ -137,6 +138,7 @@ export default function App() {
   return (
     <>
       <Header />
+      {toolbar}
       {appMode === 'agent' ? (
         <AgentWorkspace />
       ) : (

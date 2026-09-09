@@ -66,6 +66,7 @@ import { canonicalizeBatchFunctionCallArguments, countResponseToolCalls, createR
 import { cleanStaleAgentInputDrafts, clearInputDraftState, isEmptyAgentInputDraft, normalizeAgentInputDrafts, remapAgentInputDraftMentionsForPathChange, restoreAgentInputDraftState, restoreGalleryInputDraftState, saveActiveAgentInputDrafts, saveGalleryInputDraft, syncActiveInputDraft, updateInputDraftImages } from './lib/inputDraftState'
 import { ALL_FAVORITES_COLLECTION_ID, DEFAULT_FAVORITE_COLLECTION_ID, createDefaultFavoriteCollection, deleteFavoriteCollectionState, ensureDefaultFavoriteCollection, getTaskFavoriteCollectionIds, mergeFavoriteCollections, normalizeFavoriteCollectionIds, normalizeFavoriteCollectionName, normalizeFavoriteCollections, normalizeFavoritePatch, normalizeLoadedFavoriteState, resolveDefaultFavoriteCollectionId, sameFavoriteCollectionIds } from './lib/favoriteState'
 import { createPersistedState, mergePersistedAgentConversations, migratePersistedState, normalizePersistedState } from './lib/persistedState'
+import { getStorageNamespace } from './lib/sub2apiSession'
 import { addImageSizeParam, createTaskDonePatch, createTaskErrorPatch, deriveAgentImageActualParams, deriveGalleryActualParams, firstActualParams, hasActualParams, hasActualSizeParam, mapActualParamsByImage, mapRevisedPromptsByImage, markInterruptedOpenAIRunningTasks } from './lib/taskState'
 import { stripInjectedCodexCliSizePrompt } from './lib/size'
 
@@ -243,7 +244,13 @@ function getLatestAgentConversation(conversations: AgentConversation[]) {
 }
 
 export function getPersistedState(state: AppState) {
-  return createPersistedState(state, agentConversationMigrationPending && !agentConversationPersistenceReady)
+  const persisted = createPersistedState(state, agentConversationMigrationPending && !agentConversationPersistenceReady)
+  if (getStorageNamespace() !== 'gpt-image-playground') {
+    // 自动读取的 Key 仅用于当前会话，刷新后重新向网站获取。
+    persisted.settings = { ...persisted.settings, apiKey: '', profiles: persisted.settings.profiles.map((profile) => ({ ...profile, apiKey: '' })) }
+    persisted.previousPresetConfig = null
+  }
+  return persisted
 }
 
 async function replaceStoredAgentConversations(conversations: AgentConversation[]) {
@@ -1012,7 +1019,7 @@ export const useStore = create<AppState>()(
       },
     }),
     {
-      name: 'gpt-image-playground',
+      name: getStorageNamespace(),
       version: 2,
       migrate: migratePersistedState,
       partialize: getPersistedState,

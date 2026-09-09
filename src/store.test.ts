@@ -9,6 +9,7 @@ import { deleteAgentRoundFromConversation, getActiveAgentRounds, getAgentConvers
 import { cleanStaleAgentInputDrafts } from './lib/inputDraftState'
 import { normalizePersistedState } from './lib/persistedState'
 import { setPresetConfig } from './lib/presetConfig'
+import * as sub2apiSession from './lib/sub2apiSession'
 vi.mock('./lib/db', () => {
   const tasks = new Map<string, TaskRecord>()
   const images = new Map<string, StoredImage>()
@@ -677,6 +678,21 @@ describe('input persistence setting', () => {
 
     expect(persisted.prompt).toBe('prompt')
     expect(persisted.inputImages).toEqual([{ id: imageA.id, dataUrl: '' }])
+  })
+
+  it('keeps managed Sub2API credentials in memory and out of persisted settings', () => {
+    const scope = vi.spyOn(sub2apiSession, 'getStorageNamespace').mockReturnValue('gpt-image-playground:sub2api:fixture:42')
+    try {
+      const profile = { ...createDefaultOpenAIProfile(), apiKey: 'sk-fixture-managed' }
+      const state = { ...useStore.getState(), settings: normalizeSettings({ profiles: [profile] }), previousPresetConfig: { profiles: [profile], customProviders: [] } }
+      const persisted = getPersistedState(state)
+      expect(persisted.settings.apiKey).toBe('')
+      expect(persisted.settings.profiles[0].apiKey).toBe('')
+      expect(persisted.previousPresetConfig).toBeNull()
+      expect(state.settings.profiles[0].apiKey).toBe('sk-fixture-managed')
+    } finally {
+      scope.mockRestore()
+    }
   })
 
   it('omits input when restart input restore is disabled', () => {

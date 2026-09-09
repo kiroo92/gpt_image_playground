@@ -1,6 +1,7 @@
 import type { AgentConversation, TaskRecord, StoredImage, StoredImageThumbnail } from '../types'
+import { getStorageNamespace } from './sub2apiSession'
 
-const DB_NAME = 'gpt-image-playground'
+const DB_NAME = getStorageNamespace()
 const DB_VERSION = 3
 const STORE_TASKS = 'tasks'
 const STORE_IMAGES = 'images'

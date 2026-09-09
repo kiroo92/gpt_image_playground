@@ -162,6 +162,8 @@
 
 ## 🚀 部署与使用
 
+**Sub2API 网站用户**：支持从自定义菜单新标签页打开、复用网站认证、按图像分组自动加载 Key 并使用异步生图。参见 [Sub2API 菜单接入说明](docs/sub2api-integration.md)。
+
 支持多种部署与开发方式。
 
 <a id="preset-config"></a>
